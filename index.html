@@ -1,0 +1,37 @@
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>iframe test</title>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/pako/1.0.10/pako.min.js" 
+				integrity="sha256-Kc+gVCuYZLZkDP3MjxWxhNtkMbUy2ycCo86X5fKn/Bw=" 
+				crossorigin="anonymous"></script>
+		<script type="text/javascript">
+		function request(opts) {
+			const req = XMLHttpRequest();
+			return new Promise((res, rej) => {
+				req.onreadystatechange = () => {
+					if (req.readyState !== 4) return;
+					if (req.status === 200) {
+						res(req);
+					} else {
+						rej({ status: req.status, text: req.statusText });
+					}
+				};
+				req.open(opts.method, opts.url);
+				req.send(opts.data);
+			});
+		}
+		window.addEventListener('message', evt => {
+			if (evt.origin !== window.origin) return;
+			console.log('msg:', evt);
+		});
+		document.addEventListener('load', () => {
+			console.log('onload');
+			window.postMessage('hi from page');
+		});
+		</script>
+	</head>
+	<body>
+		<p>body</p>
+	</body>
+</html>
