@@ -1,0 +1,16 @@
+@font-face {
+  font-family: inconsolata;
+  src: url(/static/inconsolata-regular.ttf);
+}
+
+@font-face {
+  font-family: inconsolata;
+  font-weight: bold;
+  src: url(/static/inconsolata-bold.ttf);
+}
+
+body {
+  color: white;
+  background-color: #070b34;
+  font-family: inconsolata;
+}
