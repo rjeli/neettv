@@ -6,9 +6,10 @@ db = SQLAlchemy()
 class User(db.Model):
     __tablename__ = 'users'
     id = db.Column(db.BigInteger, primary_key=True)
-    name = db.Column(db.Text)
+    name = db.Column(db.Text, nullable=False)
     oauth_token = db.Column(db.Text)
     oauth_token_secret = db.Column(db.Text)
+    invite_code = db.Column(db.Text, db.ForeignKey('invite_code.code'), nullable=False)
 
     def __repr__(self):
         return f'<User @{self.name} {self.id}>'
@@ -20,6 +21,11 @@ class User(db.Model):
         return False
     def get_id(self):
         return str(self.id)
+
+class Invite(db.Model):
+    __tablename__ = 'invite_code'
+    code = db.Column(db.Text, primary_key=True)
+    user_id = db.Column(db.BigInteger, db.ForeignKey('users.id'))
 
 if __name__ == '__main__':
     import os

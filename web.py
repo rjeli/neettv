@@ -7,7 +7,7 @@ from flask_login import LoginManager, login_user, logout_user, \
 from authlib.integrations.requests_client import OAuth1Session
 import uuid
 from contextlib import contextmanager
-from models import db, User
+from models import db, User, Invite
 from flask_migrate import Migrate
 
 FLASK_ENV = os.environ.get('FLASK_ENV', 'production')
@@ -66,9 +66,13 @@ def twitterauth():
     # race condition...
     user = User.query.get(user_id)
     if user is None:
+        code = session.pop('invite_code', None)
+        if code is None:
+            return redirect('/')
         user = User(id=user_id, name=access_token['screen_name'],
             oauth_token=access_token['oauth_token'],
-            oauth_token_secret=access_token['oauth_token_secret'])
+            oauth_token_secret=access_token['oauth_token_secret'],
+            invite_code=code)
         db.session.add(user)
     else:
         user.oauth_token = access_token['oauth_token']
@@ -76,6 +80,18 @@ def twitterauth():
     db.session.commit()
     login_user(user)
     return redirect('/')
+
+@app.route('/invite')
+def invite():
+    if current_user.is_authenticated:
+        inv = Invite(code=str(uuid.uuid4())[:8], user_id=current_user.id)
+        db.session.add(inv)
+        db.session.commit()
+        return render_template('invite.haml', link=URI+'/invite?c='+inv.code)
+    else:
+        code = request.args.get('c')
+        session['invite_code'] = code
+        return redirect('/twitterlogin')
 
 @app.route('/logout')
 @login_required

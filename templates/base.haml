@@ -14,6 +14,7 @@
           %span#sidecar-status(style='color:yellow;') checking for sidecar...
         .login
             %span @${current_user.name}
+            %a(href='/invite') invite
             %a(href='/logout') log out
       - else:
         .links
