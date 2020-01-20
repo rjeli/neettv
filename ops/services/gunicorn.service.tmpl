@@ -1,0 +1,15 @@
+[Unit]
+Description=gunicorn
+After=network.target
+
+[Service]
+User=www-data
+WorkingDirectory=/var/www/neettv
+Environment=DB_URI=postgres://postgres:postgres@localhost:5432/neettv
+Environment=FLASK_SECRET={{ lookup('env', 'FLASK_SECRET' ) }}
+Environment=TWITTER_ID={{ lookup('env', 'TWITTER_ID' ) }}
+Environment=TWITTER_SECRET={{ lookup('env', 'TWITTER_SECRET' ) }}
+ExecStart=/usr/local/bin/gunicorn -w 4 -b unix:/tmp/gunicorn.sock -m 0o7 web:app
+
+[Install]
+WantedBy=multi-user.target
