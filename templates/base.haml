@@ -5,4 +5,20 @@
     %link(rel='stylesheet', type='text/css', href='/static/normalize.css')
     %link(rel='stylesheet', type='text/css', href='/static/style.css')
   %body
-    ${self.body()}
+    %nav.container.navbar
+      %a.brand(href='/') neet.tv
+      - if current_user.is_authenticated:
+        .links
+          %a(href='/') home
+          %a(href='/search') search
+          %span#sidecar-status(style='color:yellow;') checking for sidecar...
+        .login
+            %span @${current_user.name}
+            %a(href='/logout') log out
+      - else:
+        .links
+        %a(href='/twitterlogin') log in with twitter
+    .container
+      ${self.body()}
+      - if current_user.is_authenticated:
+        %script(type='text/javascript', src='/static/neettv.js')

@@ -1,0 +1,8 @@
+%%inherit(file='base.haml')
+
+%%def(name='body()')
+  %div(style='display:flex;')
+    %input#searchquery(type='text', style='flex-grow:1;margin-right:10px;')
+    %button(type='submit', onclick='searchButton()') search
+  %div#searchresults(style='width:100%')
+  %script(type='text/javascript', src='/static/search.js')

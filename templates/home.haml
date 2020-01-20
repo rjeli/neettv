@@ -1,6 +1,16 @@
 %%inherit(file='base.haml')
 
 %%def(name='body()')
-  %p
-    %b neet.tv
-  %p hello logged in user ${current_user.name}
+  %p Welcome to neet.tv, TV for neets
+     (brought to you by <a href="http://twitter.com/WmafNoticer">eli</a>).
+  %p The goal of neet.tv is to provide a nicer, more configurable
+     interface for browsing video hosting sites, primarily YouTube.
+  %p Because YouTube has very low API limits, you'll need to install a
+     user script to perform search requests from your browser. For Firefox, I
+     recommend
+     <a href="https://addons.mozilla.org/en-US/firefox/addon/violentmonkey/">Violentmonkey</a>.
+     Install
+     %a(href=userscript_path) this user script,
+     and the text at the top of this page should turn green.
+     Feel free to examine that script before installing, it's quite short and
+     readable.
