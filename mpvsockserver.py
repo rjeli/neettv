@@ -9,6 +9,8 @@ from hashlib import blake2b
 import json
 import base64
 from queue import Queue
+import pwd
+import grp
 
 FLASK_SECRET = os.environ['FLASK_SECRET']
 FLASK_ENV = os.environ.get('FLASK_ENV', 'production')
@@ -45,17 +47,7 @@ def handle_client(conn, addr):
             resp = json.loads(f.readline())
             print('resp:', resp)
 
-def run_socket_server():
-    ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
-    if FLASK_ENV == 'development':
-        ctx.load_cert_chain('selfsigned.crt', 'selfsigned.key')
-        ctx.check_hostname = False
-        ctx.verify_mode = ssl.CERT_NONE
-    else:
-        ctx.load_cert_chain(
-            '/etc/letsencrypt/live/neettv.rje.li/fullchain.pem',
-            '/etc/letsencrypt/live/neettv.rje.li/privkey.pem')
-        ctx.check_hostname = False
+def run_socket_server(ctx):
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0) as sock:
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sock.bind(('0.0.0.0', 8443))
@@ -80,8 +72,25 @@ class RpcServer(rpc_capnp.MpvSockServer.Server):
         return 'none'
 
 if __name__ == '__main__':
+    # get keys and then drop permissions
+    ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+    if FLASK_ENV == 'development':
+        ctx.load_cert_chain('selfsigned.crt', 'selfsigned.key')
+        ctx.check_hostname = False
+        ctx.verify_mode = ssl.CERT_NONE
+    else:
+        ctx.load_cert_chain(
+            '/etc/letsencrypt/live/neettv.rje.li/fullchain.pem',
+            '/etc/letsencrypt/live/neettv.rje.li/privkey.pem')
+        ctx.check_hostname = False
+        uid = pwd.getpwnam('www-data').pw_uid
+        gid = grp.getgrnam('www-data').gr_gid
+        os.setgroups([])
+        os.setgid(gid)
+        os.setuid(uid)
+
     print('starting socket server')
-    t = threading.Thread(target=run_socket_server, args=())
+    t = threading.Thread(target=run_socket_server, args=(ctx,))
     t.daemon = True
     t.start()
 

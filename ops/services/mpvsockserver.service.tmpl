@@ -3,7 +3,7 @@ Description=mpvsockserver
 After=network.target
 
 [Service]
-User=www-data
+User=root
 WorkingDirectory=/var/www/neettv
 Environment=FLASK_SECRET={{ lookup('env', 'FLASK_SECRET' ) }}
 ExecStart=/usr/bin/python3 /var/www/neettv/mpvsockserver.py
