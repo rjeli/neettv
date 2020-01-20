@@ -7,3 +7,5 @@ flask-migrate
 flask-login
 authlib
 requests
+pycapnp
+cython

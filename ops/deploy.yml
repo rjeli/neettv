@@ -44,6 +44,12 @@
         dest: /etc/systemd/system/gunicorn.service
         mode: '0600'
 
+    - name: mpvsockserver service
+      template:
+        src: services/mpvsockserver.service.tmpl
+        dest: /etc/systemd/system/mpvsockserver.service
+        mode: '0600'
+
     - name: systemd reload
       systemd: daemon_reload=yes
 
@@ -54,6 +60,12 @@
         enabled: yes
 
     - name: restart gunicorn
+      systemd:
+        service: gunicorn
+        state: restarted
+        enabled: yes
+
+    - name: restart mpvsockserver
       systemd:
         service: gunicorn
         state: restarted

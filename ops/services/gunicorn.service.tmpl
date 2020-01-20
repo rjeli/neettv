@@ -10,6 +10,7 @@ Environment=FLASK_SECRET={{ lookup('env', 'FLASK_SECRET' ) }}
 Environment=TWITTER_ID={{ lookup('env', 'TWITTER_ID' ) }}
 Environment=TWITTER_SECRET={{ lookup('env', 'TWITTER_SECRET' ) }}
 ExecStart=/usr/local/bin/gunicorn -w 4 -b unix:/tmp/gunicorn.sock -m 0o7 web:app
+Restart=always
 
 [Install]
 WantedBy=multi-user.target
