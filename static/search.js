@@ -45,8 +45,16 @@ window.addEventListener('message', evt => {
       const resEl = document.createElement('li');
       if (r.videoRenderer !== undefined) {
         const vr = r.videoRenderer;
-        resEl.innerHTML += vr.title.runs[0].text + ' ';
-        resEl.innerHTML += vr.lengthText.simpleText;
+        const vidLinkEl = document.createElement('a');
+        vidLinkEl.href = '#';
+        vidLinkEl.innerHTML = vr.title.runs[0].text;
+        vidLinkEl.addEventListener('click', evt => {
+          watch(vr.navigationEndpoint.watchEndpoint.videoId);
+        });
+        resEl.appendChild(vidLinkEl);
+        // resEl.innerHTML += vr.lengthText.simpleText;
+      } else {
+        continue;
       }
       resultsListEl.appendChild(resEl);
     }
@@ -62,4 +70,12 @@ async function sendSearchResults(results) {
     body: JSON.stringify(results),
   });
   console.log('saved search');
+}
+
+async function watch(videoId) {
+  fetch('/watch', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ videoId }),
+  });
 }

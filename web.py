@@ -9,6 +9,8 @@ import uuid
 from contextlib import contextmanager
 from models import db, User, Invite
 from flask_migrate import Migrate
+import capnp
+import rpc_capnp
 
 FLASK_ENV = os.environ.get('FLASK_ENV', 'production')
 URI = 'http://localhost:5000' if FLASK_ENV == 'development' else 'https://neettv.rje.li'
@@ -25,6 +27,12 @@ login_manager.init_app(app)
 templates = TemplateLookup(['templates'], preprocessor=haml.preprocessor)
 def render_template(path, **kwargs):
     return templates.get_template(path).render(current_user=current_user, **kwargs)
+
+# ?
+def get_mss():
+    mss_conn = capnp.TwoPartyClient('localhost:60000')
+    mss = mss_conn.bootstrap().cast_as(rpc_capnp.MpvSockServer)
+    return mss
 
 TWITTER_ID = os.environ.get('TWITTER_ID')
 TWITTER_SECRET = os.environ.get('TWITTER_SECRET')
@@ -103,6 +111,15 @@ def logout():
 @login_required
 def search():
     return render_template('search.haml')
+
+@app.route('/watch', methods=['POST'])
+@login_required
+def watch():
+    print(request.json)
+    path = 'ytdl://youtube.com/watch?v='+request.json['videoId']
+    print(type(path))
+    print(get_mss().execute(str(current_user.id), { 'loadFile': { 'path': path } }).wait())
+    return ''
 
 if __name__ == '__main__':
     app.run()
