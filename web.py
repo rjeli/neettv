@@ -1,4 +1,5 @@
 from flask import Flask, request, redirect, session, make_response
+from flask.cli import AppGroup
 from mako.lookup import TemplateLookup
 import haml
 import os
@@ -6,27 +7,36 @@ from flask_login import LoginManager, login_user, logout_user, \
     login_required, current_user
 from authlib.integrations.requests_client import OAuth1Session
 import uuid
+from datetime import datetime
 from contextlib import contextmanager
-from models import db, User, Invite
+from models import db, User, Invite, Upload
 from flask_migrate import Migrate
 import capnp
 import rpc_capnp
 
 FLASK_ENV = os.environ.get('FLASK_ENV', 'production')
 URI = 'http://localhost:5000' if FLASK_ENV == 'development' else 'https://neettv.rje.li'
+DB_URI = 'postgres://postgres:postgres@localhost/neettv'
 
 app = Flask(__name__)
 app.secret_key = os.environ['FLASK_SECRET']
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ['DB_URI']
+app.config['SQLALCHEMY_DATABASE_URI'] = DB_URI
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
 db.init_app(app)
 migrate = Migrate(app, db)
+
 login_manager = LoginManager()
 login_manager.login_view = '/'
 login_manager.init_app(app)
+
 templates = TemplateLookup(['templates'], preprocessor=haml.preprocessor)
 def render_template(path, **kwargs):
     return templates.get_template(path).render(current_user=current_user, **kwargs)
+
+@app.cli.command('repl')
+def cli_repl():
+    from IPython import embed; embed()
 
 # ?
 def get_mss():
@@ -44,7 +54,7 @@ def load_user(user_id):
 @app.route('/')
 def root():
     if current_user.is_authenticated:
-        userscript_path = '/static/neettvsidecar.user.js?nocache='+str(uuid.uuid4())
+        userscript_path = '/static/neettv.user.js?nocache='+str(uuid.uuid4())
         return render_template('home.haml', userscript_path=userscript_path)
     else:
         return render_template('login.haml')
@@ -70,21 +80,24 @@ def twitterauth():
     access_token_url = 'https://api.twitter.com/oauth/access_token'
     access_token = client.fetch_access_token(access_token_url, verifier)
     print('access token:', access_token)
-    user_id = int(access_token['user_id'])
-    # race condition...
-    user = User.query.get(user_id)
+    twitter_id = access_token['user_id']
+    user = User.query.filter_by(twitter_id=twitter_id).first()
     if user is None:
+        print('twitter id not found, creating new user')
         code = session.pop('invite_code', None)
         if code is None:
             return redirect('/')
-        user = User(id=user_id, name=access_token['screen_name'],
-            oauth_token=access_token['oauth_token'],
-            oauth_token_secret=access_token['oauth_token_secret'],
-            invite_code=code)
+        user = User(
+            name=access_token['screen_name'],
+            twitter_id=twitter_id,
+            twitter_token=access_token['oauth_token'],
+            twitter_secret=access_token['oauth_token_secret'],
+            invite=code)
         db.session.add(user)
     else:
-        user.oauth_token = access_token['oauth_token']
-        user.oauth_token_secret = access_token['oauth_token_secret']
+        print('twitter id found')
+        user.twitter_token = access_token['oauth_token']
+        user.twitter_secret = access_token['oauth_token_secret']
     db.session.commit()
     login_user(user)
     return redirect('/')
@@ -92,7 +105,7 @@ def twitterauth():
 @app.route('/invite')
 def invite():
     if current_user.is_authenticated:
-        inv = Invite(code=str(uuid.uuid4())[:8], user_id=current_user.id)
+        inv = Invite(code=str(uuid.uuid4())[:8], creator=current_user.id)
         db.session.add(inv)
         db.session.commit()
         return render_template('invite.haml', link=URI+'/invite?c='+inv.code)
@@ -119,6 +132,28 @@ def watch():
     path = 'ytdl://youtube.com/watch?v='+request.json['videoId']
     print(type(path))
     print(get_mss().execute(str(current_user.id), { 'loadFile': { 'path': path } }).wait())
+    return ''
+
+@app.route('/api/upload', methods=['POST'])
+@login_required
+def upload():
+    print('upload!', request, request.files)
+    for k, v in request.form.items():
+        print('form:', k, v)
+    payload = request.files['payload'].read()
+    print('payload size:', len(payload))
+    upload = Upload(
+        location=request.form['location'],
+        type=request.form['type'],
+        created_at=datetime.utcnow(),
+        uploader=current_user.id,
+        payload=payload)
+    db.session.add(upload)
+    db.session.commit()
+    # print(request.files['formk'])
+    # print(len(request.data))
+    # data = request.get_data()
+    # print('size:', len(data), type(data))
     return ''
 
 if __name__ == '__main__':
